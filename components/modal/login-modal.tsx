@@ -1,4 +1,4 @@
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { useLoginModal } from "@/hooks/use-login-modal";
 import {
     Dialog,
