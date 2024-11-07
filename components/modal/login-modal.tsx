@@ -1,4 +1,6 @@
-import { useState, useTransition } from "react";
+"use client"
+
+import { useState, useTransition, useEffect } from "react";
 import { useLoginModal } from "@/hooks/use-login-modal";
 import {
     Dialog,
@@ -23,9 +25,10 @@ import { login } from "@/actions/login";
 import { FormError } from "../form-error";
 import { FormSuccess } from "../form-success";
 
+// Validation schema
 const LoginSchema = z.object({
-    email: z.string().min(1, {
-        message: "Email is required"
+    email: z.string().email("Invalid email format").min(1, {
+        message: "Email is required",
     }),
     password: z.string().min(4, {
         message: "Password is required",
@@ -34,6 +37,7 @@ const LoginSchema = z.object({
 
 type FormValues = z.infer<typeof LoginSchema>;
 
+// Form fields configuration
 const LogInfo = [
     {
         label: "Email",
@@ -52,23 +56,24 @@ export const LoginModal = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | undefined>("");
-
     const [success, setSuccess] = useState<string | undefined>("");
-
-    // Get the email parameter from the URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const emailFromLink = urlParams.get("email") || "";
 
     const form = useForm<FormValues>({
         resolver: zodResolver(LoginSchema),
-        defaultValues: {
-            email: emailFromLink, // Set the email from the URL query parameter
-            password: "", // Leave the password empty
-        },
+        defaultValues: { email: "", password: "" },
         mode: "onChange",
     });
 
-    const onSubmit = (values: z.infer<typeof LoginSchema>) => {
+    // Update email from URL whenever the modal opens
+    useEffect(() => {
+        if (isOpen) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const emailFromLink = urlParams.get("email") || "";
+            form.setValue("email", emailFromLink);
+        }
+    }, [isOpen, form]);
+
+    const onSubmit = (values: FormValues) => {
         setError("");
         setSuccess("");
 
@@ -89,10 +94,10 @@ export const LoginModal = () => {
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="lg:max-w-[350px] max-w-[300px] rounded-lg">
-                <div className="">
+                <div className="flex justify-center mb-4">
                     <Image
                         src={"/mail.png"}
-                        alt="Mail"
+                        alt="Mail Icon"
                         width={100}
                         height={100}
                     />
@@ -103,7 +108,7 @@ export const LoginModal = () => {
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-7">
                             {LogInfo.map(({ name, label }) => (
                                 <FormField
-                                    key={label}
+                                    key={name}
                                     name={name as keyof FormValues}
                                     control={form.control}
                                     render={({ field }) => (
@@ -113,9 +118,9 @@ export const LoginModal = () => {
                                                 <div className="relative">
                                                     <Input
                                                         disabled={isPending}
-                                                        placeholder=""
                                                         {...field}
-                                                        type={name === "password" && !showPassword ? "password" : "text"} // Change input type based on state
+                                                        placeholder=""
+                                                        type={name === "password" && !showPassword ? "password" : "text"}
                                                     />
                                                     {name === "password" && (
                                                         <button
@@ -137,7 +142,7 @@ export const LoginModal = () => {
                             <div className="mt-4">
                                 <Button
                                     type="submit"
-                                    disabled={false}
+                                    disabled={isPending}
                                     className="bg-blue-950 w-full text-white gap-x-2 flex items-center"
                                 >
                                     {isPending ? (
@@ -146,7 +151,6 @@ export const LoginModal = () => {
                                         <p>Login to Access Files</p>
                                     )}
                                 </Button>
-
                                 <p className="text-sm underline text-gray-500 mt-2 cursor-pointer">
                                     Forgot Password?
                                 </p>
